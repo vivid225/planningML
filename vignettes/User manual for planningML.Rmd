@@ -1,0 +1,240 @@
+---
+title: "EHR Sampling"
+author: "Vignette Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+## Introduction
+Advances in automated document classification has led to identifying massive numbers of clinical concepts from handwritten clinical notes. These high dimensional clinical concepts can serve as highly informative predictors in building classification algorithms for identifying patients with different clinical conditions, commonly referred to as patient phenotyping. However, from a planning perspective, it is first critical to ensure that enough data is available for the phenotyping algorithm to obtain a desired classification performance. This challenge in sample size planning is further exacerbated by the high dimensionality of the covariates and the inherent imbalance of the response class. In this poster we describe a two-step approach for sample size planning. In Step 1, we show how to incorporate feature selection in a linear discriminant analysis using two different approaches. Then, in Step 2, we derive formulas for sample size requirements based on optimizing classification performance metrics sensitive to class imbalance (AUC, MCC). Therefore, our method determines sample size for a linear classifier incorporating feature selection.
+
+## Step 1: High dimentional feature selection
+
+\item We consider the two-class classification problem with the high dimensional covariate vector $x \sim N(\mu,\Sigma)$ when $x \in C_1$ and $x \sim N(-\mu,\Sigma)$ when $x \in C_2$.
+\item Using LDA classify$x \in C_1$ when $2 \boldsymbol {x^T\Sigma^{-1}\mu>k}$ where $k>log(\frac{1-p_1}{p_1})$
+\item Given the high-dimensionality of the feature space we employ a feature selection procedure to eliminate $(p-m)$ redundant covariates, hence making $\Sigma$ non-singular.
+\item Only the remaining $m$ features are included in the linear classifier.
+\item HCT method employs Higher Criticism Thresholding2 approach to select m important features out of the p total features
+\item iHCT method improves the HCT method in a transformed coordinate system.
+
+## Step 2: Computation of sample size dependent performance metrics
+Once obtaining the $m$ important features, performance accuracy metrics that are sensitive to imbalanced class datasets are derived under both the DS and HCT method
+
+\item DS method
+Define $\theta=(\delta,\beta,\lambda,p,k)$ where $\delta$ denotes the minimum effect size, $m$ is the total number of important features, $p$ is the total number of features, $\beta$ is the power of the test, $\alpha$ is the level of the test, $\lambda$ is the maximum eigenvalue of the population correlation matrix and
+
+$$ 
+\begin{align}
+    \text{ AUC(n)}
+   & =  \int_{\kappa=-\infty}^{\infty} TPR(n)(\kappa)\text{d} (1 - TNR(n)(\kappa))d\kappa \nonumber\\
+   
+   MCC &=\sqrt{PPV \times TPR \times NPV \times TNR}\nonumber\\
+    & - \sqrt{(1-PPV) \times (1-TPR) \times (1-TNR) \times (1-NPV)}
+\end{align} \\
+
+
+$$
+where
+$$
+\begin{align*}
+    TPR(n) &= E_w [P(w'x > \kappa| w,x \in C_1]\\
+    &\approx \Phi\bigg( \frac{\delta m (1- \beta) - \kappa}{\sigma \sqrt{\rho} \sqrt{m (1- \beta) + (p-m) \alpha }}\bigg)\nonumber\\
+    
+    TNR(n) &= E_w [P(w'x < \kappa| w,x \in C_2]\\
+    &\approx \Phi\bigg( \frac{\kappa + \delta m (1- \beta)}{\sigma \sqrt{\rho} \sqrt{m (1- \beta) + (p-m) \alpha }}\bigg) 
+    
+\end{align*}
+
+$$
+
+$$
+\begin{align*}
+    \text{PPV(n)} \approx 
+    \frac{\pi_1 \times \Phi\bigg( \frac{\delta m (1- \beta) - \kappa}{\sigma \sqrt{\rho} \sqrt{m (1- \beta) + (p-m) \alpha }}\bigg)}{\pi_1 \times \Phi\bigg( \frac{\delta m (1- \beta) - \kappa}{\sigma \sqrt{\rho} \sqrt{m (1- \beta) + (p-m) \alpha }}\bigg)  + \pi_2 \times  \bigg\{ 1- \Phi\bigg( \frac{\kappa + \delta m (1- \beta)}{\sigma \sqrt{\rho} \sqrt{m (1- \beta) + (p-m) \alpha }}\bigg) \bigg\}} 
+\end{align*}
+
+$$
+
+$$
+\begin{align*}
+    \text{NPV(n)} &= \approx 
+    \frac{\pi_2 \times  \Phi\bigg( \frac{\delta m (1- \beta) + \kappa}{\sigma \sqrt{\rho} \sqrt{m (1- \beta) + (p-m) \alpha }}\bigg) }{\pi_2 \times  \Phi\bigg( \frac{\delta m (1- \beta) + \kappa}{\sigma \sqrt{\rho} \sqrt{m (1- \beta) + (p-m) \alpha }}\bigg) + \pi_1 \times \Phi\bigg( \frac{\delta m (1- \beta) - \kappa}{\sigma \sqrt{\rho} \sqrt{m (1- \beta) + (p-m) \alpha }}\bigg) }
+\end{align*}
+$$
+
+\item HCT method
+
+
+## Example: Sample size determination for identifying patients with Depression in MIMIC-III database
+Clinical notes were extracted from the MIMIC-III database which contains de-identified clinical data of over 53,000 hospital admissions for adult patients to the intensive care units (ICU) at the Beth Israel Deaconess Medical Center from 2001 to 2012. This project uses a dataset of 833 patient discharge summaries restricted to frequently re-admitted patients (>3 in a single year), labeled with 15 clinical patient phenotypes believed to be associated with risk of recurrent readmission by domain experts.
+
+The example was focused on building a classifier for identifying patients with ‘Depression’, which had a prevalence of 29%. Clinical notes were transformed into Unified Medical Language System (UMLS) Concepts using MetaMap Lite. Each note represented as a vector of 10,109 Concept Unique Identifiers (CUIs). A pilot dataset comprising 135 samples was used to determine the optimal sample size.
+
+```{r}
+## load dataset
+pilot.data = readRDS(system.file("extdata", "pilotdata.rds", package = "planningML"))
+dim(pilot.data)
+```
+
+```{r}
+x = pilot.data[,-ncol(pilot.data)]
+y = pilot.data$DEPRESSION
+```
+
+```{r}
+head(x)
+```
+
+```{r}
+y
+```
+
+
+### Feature selection based on iHCT method
+
+```{r}
+library(planningML)
+```
+
+```{r eval=FALSE, include=TRUE}
+features = featureselection(x = x, y = y)
+```
+
+```{r include=FALSE}
+features = readRDS(system.file("extdata", "features.rds", package = "planningML"))
+```
+
+```{r}
+summary(features)
+```
+
+
+### Sample size determination
+
+```{r warning=FALSE}
+output = samplesize(features=features, 
+                    method="HCT", m=c(5,10,length(features$features)), effectsize=NULL, 
+                    class.prob = NULL, totalnum_features = NULL, threshold=0.1, metric="MCC")
+head(output$outtable)
+```
+
+
+```{r}
+summary(output)
+```
+
+```{r}
+summary(output)
+```
+
+A plot demonstrating the relationship between sample size the performance measurement metrics are demonstrated:
+
+```{r}
+plot(output)
+```
+
+#### Skip the featureselection step for iHCT method
+
+For the iHCT method, if we want to skip the featureselection step and do not have a specific dataset in hand, then we can supply the number of important features (m), effect size, prevalence of the event (class.prob), and total number of features (totalnum_features) and obtain an estimation of the optimal sample size.
+
+```{r}
+effect_size = readRDS(system.file("extdata", "effectsize.rds", package = "planningML"))
+effect_size
+```
+
+```{r}
+output2 = samplesize(features = NULL,
+                      method="HCT", m=200, effectsize=effect_size, class.prob = 0.5, 
+                     totalnum_features = 5000, threshold=0.1, metric="MCC")
+```
+
+```{r}
+summary(output2)
+```
+
+```{r}
+plot(output2)
+```
+
+
+## Learning curve approximation method for imbalanced data
+
+```{r}
+dim(x)
+```
+
+
+```{r warning=FALSE}
+x_filt <- readRDS(system.file("extdata", "featuredata_filtered.rds", package = "planningML"))
+dim(x_filt)
+
+lc_df2 <- learningcurve_data(x_filt, y, method="rf", batchsize = 40, nfold=3, nrepeat=10, class.prob = 0.22, metric="AUC")
+
+lcurve_fit <- fit_learningcurve(df=lc_df2, testX = seq(10, 1000, 20))
+summary(lcurve_fit$model)
+
+```
+
+
+```{r}
+lcurve_fit <- fit_learningcurve(df=lcurve_df)
+summary(lcurve_fit)
+```
+
+```{r}
+predY <- predict(lcurve_fit, list(x=seq(100,10000, length=100)))
+predY[1:100]
+```
+
+
+```{r}
+setwd("/Users/rrrrrita/Desktop/PSU/Research.nosync/OneDrive - The Pennsylvania State University/Internship/FDA 2022 Summer/NAMCS data/FDA_Paper_Code")
+miceadds::load.Rdata(filename="NAMCS16_Clean.RData", "dt16sub" )
+
+Y <- dt16sub$opioid_use
+X_mat <- read.csv('X_new.csv')
+X_mat <- X_mat[,2:249]
+```
+
+
+```{r}
+mimicdt_log_auc <- readRDS("/Users/rrrrrita/Desktop/PSU/Research.nosync/OneDrive - The Pennsylvania State University/Internship/FDA 2022 Summer/lcurve_iHCT/lc_MIMIC_log_auc.rds")
+
+```
+
+```{r}
+mimicdt_log_auc <- learningcurve_data(x, y, method="regu.log", batchsize = 60, nfold=5, nrepeat=10, class.prob = 0.3, metric="AUC")
+
+mimicdt_log_auc
+```
+
+
+```{r}
+predY_log_auc = fit_learningcurve(mimicdt_log_auc, testX = seq(10,1000,20), target = 0.8)
+summary(predY_log_auc)
+```
+
+
+```{r}
+plot(predY_log_auc)
+```
+
+
+
+plot(seq(10,1000,20), predY_log_auc$predY, type="l", ylim=range(0.5,1), col="red",
+     xlab="sample size", ylab="AUC")
+lines(seq(10,1000,20),predY_log_auc$predY.lw, col="blue", lty=2)
+lines(seq(10,1000,20), predY_log_auc$predY.up, col="blue", lty=2)
+title("Learning curve")

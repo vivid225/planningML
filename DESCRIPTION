@@ -1,0 +1,13 @@
+Package: planningML
+Title: Sample Size Planning for Electronic Phenotyping Studies
+Version: 0.0.1
+Authors@R: person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
+           comment = c(ORCID = "YOUR-ORCID-ID"))
+Description: What the package does (one paragraph).
+Imports: tidyverse, caret, lubridate, Matrix, MESS, dplyr, pROC, doParallel
+Depends: R (>= 3.5.0)
+License: GPL-2
+Encoding: UTF-8
+RoxygenNote: 7.2.1
+Suggests: rmarkdown
+NeedsCompilation: no
